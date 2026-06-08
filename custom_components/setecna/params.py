@@ -157,24 +157,32 @@ def build_param_map(raw: dict[str, str], read_only: bool = False) -> dict[str, P
             put(_binary(f"S{i}_OUTPUT", f"Source {i} state"))
             put(_binary(f"S{i}_AUXOUTPUT", f"Source {i} auxiliary state"))
 
-    # --- dehumidifier / fans (1..8) ---
-    fan_names = ["low", "med", "high", "boost", "economy", "comfort"]
-    fan_labels = {"low": "low", "med": "medium", "high": "high",
-                  "boost": "boost", "economy": "economy", "comfort": "comfort"}
+    # --- deumidificatori (1..8): presenti se OUTPUT_DEUM != 255 ---
+    # (l'addon li filtrava su SPEED_LOW/ECONOMY != 0, sbagliato per i tipi on/off)
+    dehum_name = {1: "Deumidificatore Dependance",
+                  2: "Deumidificatore Soggiorno",
+                  3: "Deumidificatore Camere"}
+    fan_speeds = {"LOW": "low", "MED": "medium", "HIGH": "high",
+                  "BOOST": "boost", "ECONOMY": "economy", "COMFORT": "comfort"}
     for i in range(1, 9):
-        if raw.get(f"D{i}_SPEED_LOW", "0") == "0" or raw.get(f"D{i}_SPEED_ECONOMY", "0") == "0":
+        if raw.get(f"D{i}_OUTPUT_DEUM", "255") == "255":
             continue
-        put(_binary(f"D{i}_OUTPUT_RENEW", f"Fan {i} renew"))
-        put(_binary(f"D{i}_OUTPUT_DEUM", f"Fan {i} dehumidify"))
-        for s in fan_names:
-            key = f"D{i}_SPEED_{s.upper()}"
-            name = f"Fan {i} {fan_labels[s]} flow rate"
-            if w:
-                put(ParamDef(key, name, "number", unit="m³/h", state_class="measurement",
-                             transform="mul10", min=100, max=250, step=10))
-            else:
-                put(ParamDef(key, name, "sensor", unit="m³/h",
-                             state_class="measurement", transform="mul10"))
+        nm = dehum_name.get(i, f"Dehumidifier {i}")
+        put(_binary(f"D{i}_OUTPUT_DEUM", f"{nm} deumidificazione"))
+        put(_binary(f"D{i}_OUTPUT_RENEW", f"{nm} rinnovo aria"))
+        put(_binary(f"D{i}_OUTPUT_VALV", f"{nm} valvola acqua"))
+        put(_binary(f"D{i}_OUTPUT_INTG", f"{nm} integrazione"))
+        put(ParamDef(f"D{i}_REQ", f"{nm} richiesta", "sensor", state_class="measurement"))
+        # portate (m³/h) solo se realmente configurate (0/254/255 = non usate)
+        for code, lbl in fan_speeds.items():
+            key = f"D{i}_SPEED_{code}"
+            if raw.get(key, "0") not in ("0", "254", "255"):
+                if w:
+                    put(ParamDef(key, f"{nm} portata {lbl}", "number", unit="m³/h",
+                                 state_class="measurement", transform="mul10", min=100, max=250, step=10))
+                else:
+                    put(ParamDef(key, f"{nm} portata {lbl}", "sensor", unit="m³/h",
+                                 state_class="measurement", transform="mul10"))
 
     # --- energy meters (1..4) --- (solo se configurati: DESCR != 0)
     for i in range(1, 5):
