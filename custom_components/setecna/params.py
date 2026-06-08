@@ -15,6 +15,10 @@ FORCING_OPTS = ["automatic", "forced off", "forced economy", "forced comfort"]
 FORCING_CMD = {"automatic": "0", "forced off": "1", "forced economy": "2", "forced comfort": "3"}
 SEASON = {"0": "winter", "1": "summer"}
 CAL_MODE = {"1": "off", "2": "economy", "3": "comfort"}
+# forzatura velocità deumidificatore (D{i}_USER_SPEED_CONTROL)
+FORCE_SPEED = {"0": "automatica", "1": "bassa", "2": "media", "3": "alta"}
+FORCE_SPEED_OPTS = ["automatica", "bassa", "media", "alta"]
+FORCE_SPEED_CMD = {"automatica": "0", "bassa": "1", "media": "2", "alta": "3"}
 
 
 @dataclass
@@ -173,6 +177,14 @@ def build_param_map(raw: dict[str, str], read_only: bool = False) -> dict[str, P
         put(_binary(f"D{i}_OUTPUT_VALV", f"{nm} valvola acqua"))
         put(_binary(f"D{i}_OUTPUT_INTG", f"{nm} integrazione"))
         put(ParamDef(f"D{i}_REQ", f"{nm} richiesta", "sensor", state_class="measurement"))
+        # forzatura velocità (Automatica/Bassa/Media/Alta) — scrivibile
+        if w:
+            put(ParamDef(f"D{i}_USER_SPEED_CONTROL", f"{nm} forzatura velocità", "select",
+                         transform="enum", enum_map=FORCE_SPEED, cmd_map=FORCE_SPEED_CMD,
+                         options=FORCE_SPEED_OPTS))
+        else:
+            put(ParamDef(f"D{i}_USER_SPEED_CONTROL", f"{nm} forzatura velocità", "sensor",
+                         device_class="enum", transform="enum", enum_map=FORCE_SPEED))
         # portate (m³/h) solo se realmente configurate (0/254/255 = non usate)
         for code, lbl in fan_speeds.items():
             key = f"D{i}_SPEED_{code}"
