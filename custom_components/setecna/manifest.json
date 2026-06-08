@@ -1,0 +1,11 @@
+{
+  "domain": "setecna",
+  "name": "Setecna REG",
+  "codeowners": ["@croll83"],
+  "config_flow": true,
+  "documentation": "https://github.com/croll83/ha-setecna",
+  "iot_class": "cloud_polling",
+  "integration_type": "hub",
+  "requirements": [],
+  "version": "0.1.0"
+}

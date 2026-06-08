@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Setecna REG",
+        "description": "Credenziali del portale s5a.eu (le stesse dell'app Setecna).",
+        "data": {
+          "system_id": "ID sistema (es. DOT_XXXXXXX)",
+          "username": "Email",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Credenziali non valide",
+      "cannot_connect": "Impossibile contattare s5a.eu",
+      "unknown": "Errore imprevisto"
+    },
+    "abort": {
+      "already_configured": "Questo sistema è già configurato"
+    }
+  }
+}
