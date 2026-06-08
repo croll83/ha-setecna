@@ -115,8 +115,8 @@ def build_param_map(raw: dict[str, str], read_only: bool = False) -> dict[str, P
             continue
         put(_binary(f"Z{i}_OUTPUT", f"Zone {i} state", zone=i))
         put(_temp(f"Z{i}_TEMP", f"Zone {i} temperature", zone=i))
-        put(ParamDef(f"Z{i}_ZONE_MODE", f"Zone {i} mode", "sensor",
-                     device_class="enum", transform="enum", enum_map=ZONE_MODE, zone=i))
+        # Z{i}_ZONE_MODE non esposto: i codici reali (8/130/146…) sono bitfield
+        # non mappabili nell'enum e il climate mostra già modo/azione/preset.
         put(_temp(f"Z{i}_ZONE_SET", f"Zone {i} setpoint", zone=i))
         if w:
             put(ParamDef(f"Z{i}_FORCING", f"Zone {i} preset", "select", transform="enum",
@@ -176,8 +176,10 @@ def build_param_map(raw: dict[str, str], read_only: bool = False) -> dict[str, P
                 put(ParamDef(key, name, "sensor", unit="m³/h",
                              state_class="measurement", transform="mul10"))
 
-    # --- energy meters (1..4) ---
+    # --- energy meters (1..4) --- (solo se configurati: DESCR != 0)
     for i in range(1, 5):
+        if raw.get(f"EM{i}_DESCR", "0") == "0":
+            continue
         put(ParamDef(f"EM{i}_INSTANT", f"Energy meter {i} power", "sensor",
                      device_class="power", unit="kW", state_class="measurement", transform="signed_power"))
         put(ParamDef(f"EM{i}_ACCLO", f"Energy meter {i} total energy import", "sensor",
