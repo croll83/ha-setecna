@@ -1,0 +1,21 @@
+snapshot_save:
+  name: Salva snapshot
+  description: Salva in modo persistente i parametri zona/stagione/deumidificatori Setecna e lo stato di entità HA extra.
+  fields:
+    name:
+      description: Nome dello snapshot
+      example: fuori_casa
+    extra_entities:
+      description: Entità HA extra (select/number/switch) da salvare e ripristinare
+      example: select.maxa_i_32v5_wagmi_villa_modalita
+snapshot_restore:
+  name: Ripristina snapshot
+  description: Ripristina uno snapshot salvato.
+  fields:
+    name:
+      description: Nome dello snapshot
+      example: fuori_casa
+    setecna:
+      description: Ripristina i parametri Setecna
+    extra:
+      description: Ripristina le entità HA extra

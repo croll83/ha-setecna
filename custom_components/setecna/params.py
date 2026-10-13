@@ -68,8 +68,13 @@ def build_param_map(raw: dict[str, str], read_only: bool = False) -> dict[str, P
     # --- globals ---
     put(_binary("GLOBAL_ENABLE", "Global state"))
     put(_temp("GLOBAL_T_EXT", "Global external temperature"))
-    put(ParamDef("GLOBAL_SEASON", "Global season", "sensor",
-                 device_class="enum", transform="enum", enum_map=SEASON))
+    if w:
+        # PATCH 2026-09-03: stagione scrivibile (estate/inverno) — usata dai profili "Fuori casa"
+        put(ParamDef("GLOBAL_SEASON", "Global season", "select", transform="enum",
+                     enum_map=SEASON, cmd_map={"winter": "0", "summer": "1"}, options=["winter", "summer"]))
+    else:
+        put(ParamDef("GLOBAL_SEASON", "Global season", "sensor",
+                     device_class="enum", transform="enum", enum_map=SEASON))
     put(_binary("GLOBAL_DEICING", "Global de-ice state"))
     put(_temp("GLOBAL_EXPECTED_DEWP", "Global dewpoint"))
     if w:
@@ -189,12 +194,15 @@ def build_param_map(raw: dict[str, str], read_only: bool = False) -> dict[str, P
         for code, lbl in fan_speeds.items():
             key = f"D{i}_SPEED_{code}"
             if raw.get(key, "0") not in ("0", "254", "255"):
+                # NB: sono PERCENTUALI di velocità ventilatore (50/70/100), non m³/h.
+                # La MTIO0300 fa 280/330/380 m³/h reali (Vel3/Vel2/Vel1 a 20 Pa): il vecchio
+                # mul10 + "m³/h" mostrava 500/700/1000, valori inesistenti.
                 if w:
-                    put(ParamDef(key, f"{nm} portata {lbl}", "number", unit="m³/h",
-                                 state_class="measurement", transform="mul10", min=100, max=250, step=10))
+                    put(ParamDef(key, f"{nm} velocità {lbl}", "number", unit="%",
+                                 state_class="measurement", min=0, max=100, step=5))
                 else:
-                    put(ParamDef(key, f"{nm} portata {lbl}", "sensor", unit="m³/h",
-                                 state_class="measurement", transform="mul10"))
+                    put(ParamDef(key, f"{nm} velocità {lbl}", "sensor", unit="%",
+                                 state_class="measurement"))
 
     # --- energy meters (1..4) --- (solo se configurati: DESCR != 0)
     for i in range(1, 5):

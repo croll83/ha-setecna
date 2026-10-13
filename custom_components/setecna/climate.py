@@ -117,11 +117,45 @@ class SetecnaZoneClimate(CoordinatorEntity, ClimateEntity):
             return HVACMode.OFF
         return HVACMode.COOL if self._summer else HVACMode.HEAT
 
+    # --- deumidifica (PATCH 2026-09-03) ---
+    # Z{i}_DEUM codifica il deumidificatore associato: nibble basso = indice D per la
+    # deumidificazione, nibble alto = indice D per l'integrazione (es. 17 = D1/D1, 51 = D3/D3).
+    @property
+    def _deum_index(self) -> int:
+        try:
+            return int(self._d.get(self._k("DEUM")) or 0) & 0x0F
+        except (TypeError, ValueError):
+            return 0
+
+    @property
+    def _dehumidifying(self) -> bool:
+        """True se la zona ha umidità sopra il setpoint e il suo deumidificatore sta lavorando."""
+        if not self._has_rh:
+            return False
+        i = self._deum_index
+        if i <= 0 or self._d.get(f"D{i}_OUTPUT_DEUM") != "1":
+            return False
+        rh, set_rh = _t10(self._d.get(self._k("RH"))), _t10(self._d.get(self._k("SET_RH")))
+        return rh is not None and set_rh is not None and rh > set_rh
+
     @property
     def hvac_action(self):
         if self._d.get(self._k("OUTPUT")) == "1":
             return HVACAction.COOLING if self._summer else HVACAction.HEATING
+        # Temperatura raggiunta ma umidità sopra target: il deumidificatore associato lavora
+        # (e tiene attivi collettore + MAXA in economy) → mostriamo "deumidifica", non "idle".
+        if self._dehumidifying:
+            return HVACAction.DRYING
         return HVACAction.IDLE
+
+    @property
+    def extra_state_attributes(self):
+        i = self._deum_index
+        return {
+            "deumidificatore": f"D{i}" if i else None,
+            "deumidifica_attiva": self._dehumidifying,
+            "temperatura_raggiunta": self._d.get(self._k("OUTPUT")) != "1",
+        }
 
     @property
     def preset_mode(self):
